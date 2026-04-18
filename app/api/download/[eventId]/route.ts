@@ -9,9 +9,9 @@ const supabase = createClient(
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { eventId: string } }
+  context: { params: Promise<{ eventId: string }> }
 ) {
-  const { eventId } = params
+  const { eventId } = await context.params
 
   const { data: photos } = await supabase
     .from('photos')
@@ -32,9 +32,9 @@ export async function GET(
     zip.file(`photo-${i + 1}.${ext}`, buffer)
   }
 
-  const zipBuffer = await zip.generateAsync({ type: 'uint8array' })
+  const zipBuffer = await zip.generateAsync({ type: 'arraybuffer' })
 
-  return new NextResponse(zipBuffer, {
+  return new NextResponse(new Uint8Array(zipBuffer), {
     headers: {
       'Content-Type': 'application/zip',
       'Content-Disposition': `attachment; filename="evesnap-photos.zip"`,
