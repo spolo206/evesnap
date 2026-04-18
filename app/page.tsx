@@ -64,14 +64,17 @@ const texts = {
 
 export default function Home() {
   const [lang, setLang] = useState<'ko' | 'en' | 'es'>('ko')
+  const [menuOpen, setMenuOpen] = useState(false)
   const t = texts[lang]
 
   return (
     <main className="min-h-screen bg-white">
       {/* Header */}
-      <header className="flex justify-between items-center px-8 py-5 border-b border-gray-100">
+      <header className="flex justify-between items-center px-6 py-4 border-b border-gray-100">
         <h1 className="text-2xl font-bold text-purple-700">Evesnap</h1>
-        <div className="flex items-center gap-3">
+
+        {/* Desktop nav */}
+        <div className="hidden md:flex items-center gap-3">
           <div className="flex gap-1 bg-gray-100 rounded-lg p-1">
             {(['ko', 'en', 'es'] as const).map(l => (
               <button
@@ -90,11 +93,42 @@ export default function Home() {
             {t.cta}
           </Link>
         </div>
+
+        {/* Mobile menu button */}
+        <button
+          className="md:hidden text-gray-500 text-2xl"
+          onClick={() => setMenuOpen(!menuOpen)}
+        >
+          {menuOpen ? '✕' : '☰'}
+        </button>
       </header>
 
+      {/* Mobile menu */}
+      {menuOpen && (
+        <div className="md:hidden bg-white border-b border-gray-100 px-6 py-4 flex flex-col gap-4">
+          <div className="flex gap-1 bg-gray-100 rounded-lg p-1 w-fit">
+            {(['ko', 'en', 'es'] as const).map(l => (
+              <button
+                key={l}
+                onClick={() => { setLang(l); setMenuOpen(false) }}
+                className={`px-3 py-1 rounded-md text-xs font-medium transition ${lang === l ? 'bg-white text-purple-700 shadow-sm' : 'text-gray-400'}`}
+              >
+                {l === 'ko' ? '한국어' : l === 'en' ? 'EN' : 'ES'}
+              </button>
+            ))}
+          </div>
+          <Link href="/login" onClick={() => setMenuOpen(false)} className="text-gray-600 text-sm">
+            {t.login}
+          </Link>
+          <Link href="/register" onClick={() => setMenuOpen(false)} className="bg-purple-700 text-white px-5 py-3 rounded-lg text-sm font-medium text-center">
+            {t.cta}
+          </Link>
+        </div>
+      )}
+
       {/* Hero */}
-      <section className="text-center py-24 px-8 bg-gradient-to-b from-purple-50 to-white">
-        <h2 className="text-5xl font-bold text-gray-900 mb-6 max-w-2xl mx-auto leading-tight">
+      <section className="text-center py-20 px-6 bg-gradient-to-b from-purple-50 to-white">
+        <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6 max-w-2xl mx-auto leading-tight">
           {t.hero}
         </h2>
         <p className="text-lg text-gray-400 max-w-xl mx-auto mb-10">
@@ -106,7 +140,7 @@ export default function Home() {
       </section>
 
       {/* Features */}
-      <section className="grid grid-cols-1 md:grid-cols-3 gap-6 px-8 py-16 max-w-5xl mx-auto">
+      <section className="grid grid-cols-1 md:grid-cols-3 gap-6 px-6 py-16 max-w-5xl mx-auto">
         {[
           { emoji: '📱', title: t.feature1, sub: t.feature1sub },
           { emoji: '🔒', title: t.feature2, sub: t.feature2sub },
@@ -121,7 +155,7 @@ export default function Home() {
       </section>
 
       {/* How it works */}
-      <section className="py-16 px-8 bg-gray-50">
+      <section className="py-16 px-6 bg-gray-50">
         <div className="max-w-4xl mx-auto">
           <h3 className="text-3xl font-bold text-center mb-12 text-gray-900">{t.how}</h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -144,7 +178,7 @@ export default function Home() {
       </section>
 
       {/* CTA Bottom */}
-      <section className="text-center py-20 px-8">
+      <section className="text-center py-20 px-6">
         <h3 className="text-3xl font-bold text-gray-900 mb-4">{t.hero}</h3>
         <p className="text-gray-400 mb-8">{t.sub}</p>
         <Link href="/register" className="bg-purple-700 text-white px-8 py-4 rounded-xl text-lg hover:bg-purple-800 transition font-medium">
@@ -153,7 +187,7 @@ export default function Home() {
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-gray-100 py-8 px-8 text-center">
+      <footer className="border-t border-gray-100 py-8 px-6 text-center">
         <p className="text-purple-700 font-bold text-lg mb-2">Evesnap</p>
         <p className="text-gray-400 text-sm">© 2025 Evesnap</p>
       </footer>
