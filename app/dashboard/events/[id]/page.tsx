@@ -16,6 +16,7 @@ export default function EventPage() {
   const [loading, setLoading] = useState(true)
   const [copied, setCopied] = useState(false)
   const [tab, setTab] = useState<'overview' | 'photos' | 'qr'>('overview')
+  const [downloading, setDownloading] = useState(false)
   const router = useRouter()
   const { id } = useParams()
 
@@ -50,6 +51,19 @@ export default function EventPage() {
     navigator.clipboard.writeText(link)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
+  }
+
+  const downloadAll = async () => {
+    setDownloading(true)
+    const response = await fetch(`/api/download/${id}`)
+    const blob = await response.blob()
+    const url = window.URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `${event.name}-photos.zip`
+    a.click()
+    window.URL.revokeObjectURL(url)
+    setDownloading(false)
   }
 
   if (loading) return (
@@ -164,13 +178,24 @@ export default function EventPage() {
                 <p className="text-gray-400">아직 사진이 없습니다 · No photos yet</p>
               </div>
             ) : (
-              <div className="grid grid-cols-3 gap-3">
-                {photos.map(photo => (
-                  <div key={photo.id} className="aspect-square rounded-xl overflow-hidden bg-gray-100">
-                    <img src={photo.url} alt="" className="w-full h-full object-cover" />
-                  </div>
-                ))}
-              </div>
+              <>
+                <div className="flex justify-end mb-4">
+                  <button
+                    onClick={downloadAll}
+                    disabled={downloading}
+                    className="bg-purple-700 text-white px-5 py-2.5 rounded-lg text-sm hover:bg-purple-800 transition disabled:opacity-50"
+                  >
+                    {downloading ? '⏳ 준비 중...' : '⬇️ 전체 다운로드 · Download all'}
+                  </button>
+                </div>
+                <div className="grid grid-cols-3 gap-3">
+                  {photos.map(photo => (
+                    <div key={photo.id} className="aspect-square rounded-xl overflow-hidden bg-gray-100">
+                      <img src={photo.url} alt="" className="w-full h-full object-cover" />
+                    </div>
+                  ))}
+                </div>
+              </>
             )}
           </div>
         )}
