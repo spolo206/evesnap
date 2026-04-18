@@ -34,6 +34,7 @@ export default function GuestPage() {
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
   const [tab, setTab] = useState('upload')
+  const [view, setView] = useState('feed')
   const [selectedPhoto, setSelectedPhoto] = useState(null)
   const [likes, setLikes] = useState({})
   const [liked, setLiked] = useState({})
@@ -196,52 +197,77 @@ export default function GuestPage() {
                 <p className="text-gray-400">{isKorean ? '아직 사진이 없습니다' : 'No photos yet'}</p>
               </div>
             ) : (
-              <div className="flex flex-col gap-6">
-                {photos.map(photo => (
-                  <div key={photo.id} className="border border-gray-100 rounded-2xl overflow-hidden">
-                    <div className="flex items-center gap-3 px-4 py-3">
-                      <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center text-sm font-medium text-purple-700">
-                        {photo.guest_name ? photo.guest_name[0].toUpperCase() : '?'}
+              <div>
+                <div className="flex justify-end mb-4">
+                  <div className="flex gap-1 bg-gray-100 rounded-lg p-1">
+                    <button onClick={() => setView('feed')} className={'px-3 py-1.5 rounded-md text-sm font-medium transition ' + (view === 'feed' ? 'bg-white text-purple-700 shadow-sm' : 'text-gray-400')}>
+                      {isKorean ? '☰ 피드' : '☰ Feed'}
+                    </button>
+                    <button onClick={() => setView('grid')} className={'px-3 py-1.5 rounded-md text-sm font-medium transition ' + (view === 'grid' ? 'bg-white text-purple-700 shadow-sm' : 'text-gray-400')}>
+                      {isKorean ? '⊞ 그리드' : '⊞ Grid'}
+                    </button>
+                  </div>
+                </div>
+
+                {view === 'grid' && (
+                  <div className="grid grid-cols-3 gap-2">
+                    {photos.map(photo => (
+                      <div key={photo.id} className="aspect-square rounded-xl overflow-hidden bg-gray-100 cursor-pointer" onClick={() => setSelectedPhoto(photo)}>
+                        <img src={photo.url} alt="" className="w-full h-full object-cover" />
                       </div>
-                      <div>
-                        <p className="text-sm font-medium">{photo.guest_name || (isKorean ? '익명' : 'Guest')}</p>
-                        <p className="text-xs text-gray-400">{new Date(photo.created_at).toLocaleDateString()}</p>
-                      </div>
-                    </div>
-                    <img src={photo.url} alt="" className="w-full object-cover cursor-pointer" style={{ maxHeight: '500px' }} onClick={() => setSelectedPhoto(photo)} />
-                    <div className="px-4 py-3">
-                      <div className="flex items-center gap-4 mb-2">
-                        <button onClick={() => handleLike(photo.id)} className="flex items-center gap-1">
-                          <span className="text-xl">{liked[photo.id] ? '❤️' : '🤍'}</span>
-                          <span className="text-sm text-gray-400">{likes[photo.id] || 0}</span>
-                        </button>
-                        <span className="text-xl">💬</span>
-                        <a href={photo.url} download="photo.jpg" className="ml-auto text-sm text-gray-400 border border-gray-200 px-3 py-1 rounded-lg">Download</a>
-                      </div>
-                      {photo.message && (
-                        <p className="text-sm text-gray-600 mb-2">
-                          <span className="font-medium">{photo.guest_name || (isKorean ? '익명' : 'Guest')}</span>
-                          {' ' + photo.message}
-                        </p>
-                      )}
-                      {(comments[photo.id] || []).map(c => (
-                        <p key={c.id} className="text-sm text-gray-600 mb-1">
-                          <span className="font-medium">{c.guest_name || (isKorean ? '익명' : 'Guest')}</span>
-                          {' ' + c.content}
-                        </p>
-                      ))}
-                      <div className="flex flex-col gap-2 mt-3 border-t border-gray-50 pt-3">
-                        {!getSavedName() && (
-                          <input type="text" placeholder={isKorean ? '이름...' : 'Your name...'} value={commentName} onChange={e => { setCommentName(e.target.value); saveName(e.target.value) }} className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:border-purple-400" />
-                        )}
-                        <div className="flex gap-2">
-                          <input type="text" placeholder={isKorean ? '댓글 추가...' : 'Add a comment...'} value={newComment} onChange={e => setNewComment(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') handleComment(photo.id) }} className="flex-1 text-sm border-none outline-none text-gray-600 placeholder-gray-300" />
-                          <button onClick={() => handleComment(photo.id)} className="text-purple-700 text-sm font-medium">{isKorean ? '게시' : 'Post'}</button>
+                    ))}
+                  </div>
+                )}
+
+                {view === 'feed' && (
+                  <div className="flex flex-col gap-6">
+                    {photos.map(photo => (
+                      <div key={photo.id} className="border border-gray-100 rounded-2xl overflow-hidden">
+                        <div className="flex items-center gap-3 px-4 py-3">
+                          <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center text-sm font-medium text-purple-700">
+                            {photo.guest_name ? photo.guest_name[0].toUpperCase() : '?'}
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium">{photo.guest_name || (isKorean ? '익명' : 'Guest')}</p>
+                            <p className="text-xs text-gray-400">{new Date(photo.created_at).toLocaleDateString()}</p>
+                          </div>
+                        </div>
+                        <img src={photo.url} alt="" className="w-full object-cover cursor-pointer" style={{ maxHeight: '500px' }} onClick={() => setSelectedPhoto(photo)} />
+                        <div className="px-4 py-3">
+                          <div className="flex items-center gap-4 mb-2">
+                            <button onClick={() => handleLike(photo.id)} className="flex items-center gap-1">
+                              <span className="text-xl">{liked[photo.id] ? '❤️' : '🤍'}</span>
+                              <span className="text-sm text-gray-400">{likes[photo.id] || 0}</span>
+                            </button>
+                            <span className="text-xl">💬</span>
+                            <a href={photo.url} download="photo.jpg" className="ml-auto text-sm text-gray-400 border border-gray-200 px-3 py-1 rounded-lg hover:bg-gray-50 transition">Download</a>
+                          </div>
+                          {photo.message && (
+                            <p className="text-sm text-gray-600 mb-2">
+                              <span className="font-medium">{photo.guest_name || (isKorean ? '익명' : 'Guest')}</span>
+                              {' ' + photo.message}
+                            </p>
+                          )}
+                          {(comments[photo.id] || []).map(c => (
+                            <p key={c.id} className="text-sm text-gray-600 mb-1">
+                              <span className="font-medium">{c.guest_name || (isKorean ? '익명' : 'Guest')}</span>
+                              {' ' + c.content}
+                            </p>
+                          ))}
+                          <div className="flex flex-col gap-2 mt-3 border-t border-gray-50 pt-3">
+                            {!getSavedName() && (
+                              <input type="text" placeholder={isKorean ? '이름...' : 'Your name...'} value={commentName} onChange={e => { setCommentName(e.target.value); saveName(e.target.value) }} className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:border-purple-400" />
+                            )}
+                            <div className="flex gap-2">
+                              <input type="text" placeholder={isKorean ? '댓글 추가...' : 'Add a comment...'} value={newComment} onChange={e => setNewComment(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') handleComment(photo.id) }} className="flex-1 text-sm border-none outline-none text-gray-600 placeholder-gray-300" />
+                              <button onClick={() => handleComment(photo.id)} className="text-purple-700 text-sm font-medium">{isKorean ? '게시' : 'Post'}</button>
+                            </div>
+                          </div>
                         </div>
                       </div>
-                    </div>
+                    ))}
                   </div>
-                ))}
+                )}
               </div>
             )}
           </div>
@@ -267,7 +293,7 @@ export default function GuestPage() {
                   <span className="text-xl">{liked[selectedPhoto.id] ? '❤️' : '🤍'}</span>
                   <span className="text-sm text-gray-400">{likes[selectedPhoto.id] || 0}</span>
                 </button>
-                <a href={selectedPhoto.url} download="photo.jpg" className="ml-auto text-sm text-gray-400 border border-gray-200 px-3 py-1 rounded-lg">Download</a>
+                <a href={selectedPhoto.url} download="photo.jpg" className="ml-auto text-sm text-gray-400 border border-gray-200 px-3 py-1 rounded-lg hover:bg-gray-50 transition">Download</a>
               </div>
               {selectedPhoto.message && (
                 <p className="text-sm text-gray-600 mb-3">
