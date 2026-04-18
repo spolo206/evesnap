@@ -4,6 +4,7 @@ import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@supabase/supabase-js'
 import { QRCodeSVG } from 'qrcode.react'
+import { translations, getSavedLang, saveLang } from '../../../lib/i18n'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -21,10 +22,12 @@ export default function EventPage() {
   const [view, setView] = useState('grid')
   const [selectedPhoto, setSelectedPhoto] = useState(null)
   const [downloading, setDownloading] = useState(false)
+  const [lang, setLang] = useState('ko')
   const router = useRouter()
   const { id } = useParams()
 
   useEffect(() => {
+    setLang(getSavedLang())
     const init = async () => {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { router.push('/login'); return }
@@ -52,9 +55,10 @@ export default function EventPage() {
     init()
   }, [id])
 
+  const changeLang = (l) => { setLang(l); saveLang(l) }
+
   const copyLink = () => {
-    const link = window.location.origin + '/event/' + event.slug
-    navigator.clipboard.writeText(link)
+    navigator.clipboard.writeText(window.location.origin + '/event/' + event.slug)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
   }
@@ -78,13 +82,23 @@ export default function EventPage() {
     </div>
   )
 
+  const t = translations[lang]
   const eventUrl = typeof window !== 'undefined' ? window.location.origin + '/event/' + event.slug : ''
 
   return (
     <main className="min-h-screen bg-gray-50">
       <header className="bg-white border-b border-gray-100 px-8 py-4 flex justify-between items-center">
         <h1 className="text-xl font-bold text-purple-700">Evesnap</h1>
-        <Link href="/dashboard" className="text-sm text-gray-400 hover:text-gray-600">← Dashboard</Link>
+        <div className="flex items-center gap-3">
+          <div className="flex gap-1 bg-gray-100 rounded-lg p-1">
+            {['ko', 'en', 'es'].map(l => (
+              <button key={l} onClick={() => changeLang(l)} className={'px-2 py-1 rounded-md text-xs font-medium transition ' + (lang === l ? 'bg-white text-purple-700 shadow-sm' : 'text-gray-400')}>
+                {l === 'ko' ? '한' : l === 'en' ? 'EN' : 'ES'}
+              </button>
+            ))}
+          </div>
+          <Link href="/dashboard" className="text-sm text-gray-400 hover:text-gray-600">{t.back}</Link>
+        </div>
       </header>
 
       <div className="max-w-4xl mx-auto px-8 py-10">
@@ -97,52 +111,52 @@ export default function EventPage() {
           <div className="flex justify-between items-start">
             <div>
               <h2 className="text-2xl font-bold">{event.name}</h2>
-              <p className="text-gray-400 text-sm mt-1">{event.date} · {event.location || 'No location'}</p>
+              <p className="text-gray-400 text-sm mt-1">{event.date} · {event.location || '-'}</p>
               <span className={'text-xs px-2 py-1 rounded-full mt-2 inline-block ' + (event.is_active ? 'bg-green-50 text-green-600' : 'bg-gray-100 text-gray-400')}>
-                {event.is_active ? '진행 중 · Active' : '종료 · Ended'}
+                {event.is_active ? t.active : t.ended}
               </span>
             </div>
             <div className="flex gap-2">
               <Link href={'/dashboard/events/' + id + '/edit'} className="border border-gray-200 text-sm px-4 py-2 rounded-lg hover:bg-gray-50 transition">
-                ✏️ Edit
+                ✏️ {t.edit}
               </Link>
               <button onClick={copyLink} className="border border-gray-200 text-sm px-4 py-2 rounded-lg hover:bg-gray-50 transition">
-                {copied ? '✅ Copied!' : '🔗 Copy link'}
+                {copied ? '✅ ' + t.copied : '🔗 ' + t.copyLink}
               </button>
             </div>
           </div>
           <div className="mt-4 bg-purple-50 rounded-xl p-4">
-            <p className="text-xs text-purple-400 mb-1">Guest link</p>
+            <p className="text-xs text-purple-400 mb-1">{t.guestLink}</p>
             <p className="text-purple-700 font-mono text-sm break-all">{eventUrl}</p>
           </div>
         </div>
 
         <div className="flex gap-2 mb-6">
-          <button onClick={() => setTab('overview')} className={'px-4 py-2 rounded-lg text-sm font-medium transition ' + (tab === 'overview' ? 'bg-purple-700 text-white' : 'bg-white border border-gray-200 text-gray-500')}>📊 Overview</button>
-          <button onClick={() => setTab('qr')} className={'px-4 py-2 rounded-lg text-sm font-medium transition ' + (tab === 'qr' ? 'bg-purple-700 text-white' : 'bg-white border border-gray-200 text-gray-500')}>📱 QR Code</button>
-          <button onClick={() => setTab('photos')} className={'px-4 py-2 rounded-lg text-sm font-medium transition ' + (tab === 'photos' ? 'bg-purple-700 text-white' : 'bg-white border border-gray-200 text-gray-500')}>{'🖼️ Photos (' + photos.length + ')'}</button>
+          <button onClick={() => setTab('overview')} className={'px-4 py-2 rounded-lg text-sm font-medium transition ' + (tab === 'overview' ? 'bg-purple-700 text-white' : 'bg-white border border-gray-200 text-gray-500')}>📊 {t.overview}</button>
+          <button onClick={() => setTab('qr')} className={'px-4 py-2 rounded-lg text-sm font-medium transition ' + (tab === 'qr' ? 'bg-purple-700 text-white' : 'bg-white border border-gray-200 text-gray-500')}>📱 QR</button>
+          <button onClick={() => setTab('photos')} className={'px-4 py-2 rounded-lg text-sm font-medium transition ' + (tab === 'photos' ? 'bg-purple-700 text-white' : 'bg-white border border-gray-200 text-gray-500')}>{'🖼️ ' + t.photos + ' (' + photos.length + ')'}</button>
         </div>
 
         {tab === 'overview' && (
           <div className="grid grid-cols-3 gap-4">
             <div className="bg-white rounded-2xl border border-gray-100 p-6 text-center">
               <p className="text-3xl font-bold text-purple-700">{photos.length}</p>
-              <p className="text-gray-400 text-sm mt-1">Photos</p>
+              <p className="text-gray-400 text-sm mt-1">{t.photos}</p>
             </div>
             <div className="bg-white rounded-2xl border border-gray-100 p-6 text-center">
               <p className="text-3xl font-bold text-purple-700">{new Set(photos.map(p => p.guest_name).filter(Boolean)).size}</p>
-              <p className="text-gray-400 text-sm mt-1">Guests</p>
+              <p className="text-gray-400 text-sm mt-1">{t.guests}</p>
             </div>
             <div className="bg-white rounded-2xl border border-gray-100 p-6 text-center">
               <p className="text-3xl font-bold text-purple-700">{photos.filter(p => p.message).length}</p>
-              <p className="text-gray-400 text-sm mt-1">Messages</p>
+              <p className="text-gray-400 text-sm mt-1">{t.messages}</p>
             </div>
           </div>
         )}
 
         {tab === 'qr' && (
           <div className="bg-white rounded-2xl border border-gray-100 p-8 text-center">
-            <p className="text-gray-500 text-sm mb-6">Show this QR to your guests</p>
+            <p className="text-gray-500 text-sm mb-6">{t.showQR}</p>
             <div className="flex justify-center mb-6">
               <div className="p-6 border border-gray-100 rounded-2xl inline-block">
                 <QRCodeSVG value={eventUrl} size={220} fgColor="#6d28d9" level="H" />
@@ -150,7 +164,7 @@ export default function EventPage() {
             </div>
             <p className="text-gray-400 text-xs font-mono mb-6">{eventUrl}</p>
             <button onClick={copyLink} className="bg-purple-700 text-white px-6 py-3 rounded-lg text-sm hover:bg-purple-800 transition">
-              {copied ? '✅ Copied!' : '🔗 Copy link'}
+              {copied ? '✅ ' + t.copied : '🔗 ' + t.copyLink}
             </button>
           </div>
         )}
@@ -160,17 +174,17 @@ export default function EventPage() {
             {photos.length === 0 ? (
               <div className="bg-white rounded-2xl border border-gray-100 p-12 text-center">
                 <p className="text-4xl mb-3">📸</p>
-                <p className="text-gray-400">No photos yet</p>
+                <p className="text-gray-400">{t.noPhotos}</p>
               </div>
             ) : (
               <div>
                 <div className="flex justify-between items-center mb-4">
                   <div className="flex gap-1 bg-gray-100 rounded-lg p-1">
-                    <button onClick={() => setView('grid')} className={'px-3 py-1.5 rounded-md text-sm font-medium transition ' + (view === 'grid' ? 'bg-white text-purple-700 shadow-sm' : 'text-gray-400')}>⊞ Grid</button>
-                    <button onClick={() => setView('feed')} className={'px-3 py-1.5 rounded-md text-sm font-medium transition ' + (view === 'feed' ? 'bg-white text-purple-700 shadow-sm' : 'text-gray-400')}>☰ Feed</button>
+                    <button onClick={() => setView('grid')} className={'px-3 py-1.5 rounded-md text-sm font-medium transition ' + (view === 'grid' ? 'bg-white text-purple-700 shadow-sm' : 'text-gray-400')}>{t.grid}</button>
+                    <button onClick={() => setView('feed')} className={'px-3 py-1.5 rounded-md text-sm font-medium transition ' + (view === 'feed' ? 'bg-white text-purple-700 shadow-sm' : 'text-gray-400')}>{t.feed}</button>
                   </div>
                   <button onClick={downloadAll} disabled={downloading} className="bg-purple-700 text-white px-5 py-2.5 rounded-lg text-sm hover:bg-purple-800 transition disabled:opacity-50">
-                    {downloading ? '⏳ Preparing...' : '⬇️ Download all (ZIP)'}
+                    {downloading ? '⏳ ' + t.preparing : '⬇️ ' + t.downloadAll}
                   </button>
                 </div>
 
@@ -193,7 +207,7 @@ export default function EventPage() {
                             {photo.guest_name ? photo.guest_name[0].toUpperCase() : '?'}
                           </div>
                           <div>
-                            <p className="text-sm font-medium">{photo.guest_name || 'Guest'}</p>
+                            <p className="text-sm font-medium">{photo.guest_name || t.guests}</p>
                             <p className="text-xs text-gray-400">{new Date(photo.created_at).toLocaleDateString()}</p>
                           </div>
                         </div>
@@ -202,17 +216,17 @@ export default function EventPage() {
                           <div className="flex items-center gap-4 mb-2">
                             <span className="text-sm text-gray-400">{'❤️ ' + (likes[photo.id] || 0)}</span>
                             <span className="text-sm text-gray-400">{'💬 ' + (comments[photo.id] || []).length}</span>
-                            <a href={photo.url} download="photo.jpg" className="ml-auto text-sm text-gray-400 border border-gray-200 px-3 py-1 rounded-lg hover:bg-gray-50 transition">Download</a>
+                            <a href={photo.url} download="photo.jpg" className="ml-auto text-sm text-gray-400 border border-gray-200 px-3 py-1 rounded-lg hover:bg-gray-50 transition">{t.download}</a>
                           </div>
                           {photo.message && (
                             <p className="text-sm text-gray-600 mb-2">
-                              <span className="font-medium">{photo.guest_name || 'Guest'}</span>
+                              <span className="font-medium">{photo.guest_name || t.guests}</span>
                               {' ' + photo.message}
                             </p>
                           )}
                           {(comments[photo.id] || []).map(c => (
                             <p key={c.id} className="text-sm text-gray-500 mb-1">
-                              <span className="font-medium">{c.guest_name || 'Guest'}</span>
+                              <span className="font-medium">{c.guest_name || t.guests}</span>
                               {' ' + c.content}
                             </p>
                           ))}
@@ -235,7 +249,7 @@ export default function EventPage() {
                 <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center text-sm font-medium text-purple-700">
                   {selectedPhoto.guest_name ? selectedPhoto.guest_name[0].toUpperCase() : '?'}
                 </div>
-                <p className="text-sm font-medium">{selectedPhoto.guest_name || 'Guest'}</p>
+                <p className="text-sm font-medium">{selectedPhoto.guest_name || t.guests}</p>
               </div>
               <button onClick={() => setSelectedPhoto(null)} className="text-gray-400 text-xl">✕</button>
             </div>
@@ -244,17 +258,17 @@ export default function EventPage() {
               <div className="flex items-center gap-4 mb-3">
                 <span className="text-sm text-gray-400">{'❤️ ' + (likes[selectedPhoto.id] || 0)}</span>
                 <span className="text-sm text-gray-400">{'💬 ' + (comments[selectedPhoto.id] || []).length}</span>
-                <a href={selectedPhoto.url} download="photo.jpg" className="ml-auto text-sm text-gray-400 border border-gray-200 px-3 py-1 rounded-lg hover:bg-gray-50 transition">Download</a>
+                <a href={selectedPhoto.url} download="photo.jpg" className="ml-auto text-sm text-gray-400 border border-gray-200 px-3 py-1 rounded-lg hover:bg-gray-50 transition">{t.download}</a>
               </div>
               {selectedPhoto.message && (
                 <p className="text-sm text-gray-600 mb-3">
-                  <span className="font-medium">{selectedPhoto.guest_name || 'Guest'}</span>
+                  <span className="font-medium">{selectedPhoto.guest_name || t.guests}</span>
                   {' ' + selectedPhoto.message}
                 </p>
               )}
               {(comments[selectedPhoto.id] || []).map(c => (
                 <p key={c.id} className="text-sm text-gray-500 mb-1">
-                  <span className="font-medium">{c.guest_name || 'Guest'}</span>
+                  <span className="font-medium">{c.guest_name || t.guests}</span>
                   {' ' + c.content}
                 </p>
               ))}
