@@ -1,6 +1,6 @@
 'use client'
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect } from 'react'
+import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@supabase/supabase-js'
 
@@ -9,7 +9,8 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 )
 
-export default function NewEvent() {
+export default function EditEvent() {
+  const [event, setEvent] = useState(null)
   const [name, setName] = useState('')
   const [date, setDate] = useState('')
   const [location, setLocation] = useState('')
@@ -18,8 +19,27 @@ export default function NewEvent() {
   const [coverFile, setCoverFile] = useState(null)
   const [coverPreview, setCoverPreview] = useState(null)
   const [loading, setLoading] = useState(false)
+  const [saved, setSaved] = useState(false)
   const [error, setError] = useState('')
   const router = useRouter()
+  const { id } = useParams()
+
+  useEffect(() => {
+    const init = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) { router.push('/login'); return }
+      const { data } = await supabase.from('events').select('*').eq('id', id).single()
+      if (!data) { router.push('/dashboard'); return }
+      setEvent(data)
+      setName(data.name || '')
+      setDate(data.date || '')
+      setLocation(data.location || '')
+      setType(data.type || 'wedding')
+      setLanguage(data.language || 'ko')
+      setCoverPreview(data.cover_url || null)
+    }
+    init()
+  }, [id])
 
   const handleCoverChange = (e) => {
     const file = e.target.files[0]
@@ -29,19 +49,14 @@ export default function NewEvent() {
     }
   }
 
-  const handleCreate = async () => {
-    if (!name) { setError('이벤트 이름을 입력해주세요 · Please enter event name'); return }
+  const handleSave = async () => {
+    if (!name) { setError('Please enter event name'); return }
     setLoading(true)
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { router.push('/login'); return }
 
-    const slug = name.toLowerCase()
-      .replace(/[^a-z0-9가-힣\s]/g, '')
-      .replace(/\s+/g, '-')
-      + '-' + Math.random().toString(36).substring(2, 7)
-
-    let cover_url = null
+    let cover_url = event.cover_url
     if (coverFile) {
       const cleanName = coverFile.name.replace(/[^a-zA-Z0-9.]/g, '_')
       const fileName = user.id + '/' + Date.now() + '-' + cleanName
@@ -52,31 +67,38 @@ export default function NewEvent() {
       }
     }
 
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from('events')
-      .insert({ host_id: user.id, name, date, location, type, language, slug, is_active: true, cover_url })
-      .select()
-      .single()
+      .update({ name, date, location, type, language, cover_url })
+      .eq('id', id)
 
     if (error) { setError(error.message); setLoading(false); return }
-    router.push('/dashboard/events/' + data.id)
+    setSaved(true)
+    setTimeout(() => { setSaved(false); router.push('/dashboard/events/' + id) }, 1500)
+    setLoading(false)
   }
+
+  if (!event) return (
+    <div className="min-h-screen flex items-center justify-center">
+      <p className="text-gray-400">Loading...</p>
+    </div>
+  )
 
   return (
     <main className="min-h-screen bg-gray-50">
       <header className="bg-white border-b border-gray-100 px-8 py-4 flex justify-between items-center">
         <h1 className="text-xl font-bold text-purple-700">Evesnap</h1>
-        <Link href="/dashboard" className="text-sm text-gray-400 hover:text-gray-600">← Dashboard</Link>
+        <Link href={'/dashboard/events/' + id} className="text-sm text-gray-400 hover:text-gray-600">← Back</Link>
       </header>
 
       <div className="max-w-lg mx-auto px-8 py-10">
-        <h2 className="text-2xl font-bold mb-2">새 이벤트 만들기</h2>
-        <p className="text-gray-400 text-sm mb-8">Create a new event</p>
+        <h2 className="text-2xl font-bold mb-2">이벤트 수정 · Edit event</h2>
+        <p className="text-gray-400 text-sm mb-8">Update your event details</p>
 
         <div className="bg-white rounded-2xl border border-gray-100 p-8 flex flex-col gap-5">
           <div>
             <label className="text-sm text-gray-500 mb-1.5 block">이벤트 이름 · Event name *</label>
-            <input type="text" placeholder="예: 사라 & 톰의 결혼식" value={name} onChange={e => setName(e.target.value)} className="w-full border border-gray-200 rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-purple-400" />
+            <input type="text" value={name} onChange={e => setName(e.target.value)} className="w-full border border-gray-200 rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-purple-400" />
           </div>
 
           <div>
@@ -110,12 +132,12 @@ export default function NewEvent() {
           </div>
 
           <div>
-            <label className="text-sm text-gray-500 mb-1.5 block">커버 사진 · Cover photo (optional)</label>
+            <label className="text-sm text-gray-500 mb-1.5 block">커버 사진 · Cover photo</label>
             <input type="file" accept="image/*" onChange={handleCoverChange} className="hidden" id="cover-input" />
             {coverPreview ? (
               <div className="relative">
                 <img src={coverPreview} alt="" className="w-full h-48 object-cover rounded-xl" />
-                <button onClick={() => { setCoverFile(null); setCoverPreview(null) }} className="absolute top-2 right-2 bg-black bg-opacity-50 text-white rounded-full w-7 h-7 flex items-center justify-center text-sm">✕</button>
+                <label htmlFor="cover-input" className="absolute bottom-2 right-2 bg-purple-700 text-white text-xs px-3 py-1.5 rounded-lg cursor-pointer">Change</label>
               </div>
             ) : (
               <label htmlFor="cover-input" className="flex flex-col items-center justify-center border-2 border-dashed border-gray-200 rounded-xl p-8 cursor-pointer hover:border-purple-300 transition">
@@ -127,8 +149,8 @@ export default function NewEvent() {
 
           {error && <p className="text-sm text-red-500">{error}</p>}
 
-          <button onClick={handleCreate} disabled={loading} className="bg-purple-700 text-white py-3 rounded-lg hover:bg-purple-800 transition font-medium disabled:opacity-50">
-            {loading ? '...' : '이벤트 만들기 · Create event'}
+          <button onClick={handleSave} disabled={loading} className="bg-purple-700 text-white py-3 rounded-lg hover:bg-purple-800 transition font-medium disabled:opacity-50">
+            {saved ? '✅ Saved!' : loading ? '...' : '저장하기 · Save changes'}
           </button>
         </div>
       </div>
