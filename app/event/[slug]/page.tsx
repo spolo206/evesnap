@@ -8,6 +8,15 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 )
 
+function getSessionId() {
+  let id = localStorage.getItem('evesnap_session')
+  if (!id) {
+    id = Math.random().toString(36).substring(2)
+    localStorage.setItem('evesnap_session', id)
+  }
+  return id
+}
+
 export default function GuestPage() {
   const [event, setEvent] = useState<any>(null)
   const [photos, setPhotos] = useState<any[]>([])
@@ -17,6 +26,12 @@ export default function GuestPage() {
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
   const [tab, setTab] = useState<'upload' | 'gallery'>('upload')
+  const [selectedPhoto, setSelectedPhoto] = useState<any>(null)
+  const [likes, setLikes] = useState<Record<string, number>>({})
+  const [liked, setLiked] = useState<Record<string, boolean>>({})
+  const [comments, setComments] = useState<Record<string, any[]>>({})
+  const [newComment, setNewComment] = useState('')
+  const [commentName, setCommentName] = useState('')
   const { slug } = useParams()
 
   useEffect(() => {
@@ -27,36 +42,66 @@ export default function GuestPage() {
         .eq('slug', slug)
         .single()
       setEvent(data)
-
-      const { data: photosData } = await supabase
-        .from('photos')
-        .select('*')
-        .eq('event_id', data?.id)
-        .order('created_at', { ascending: false })
-      setPhotos(photosData || [])
+      if (data) await loadPhotos(data.id)
     }
     init()
   }, [slug])
 
+  const loadPhotos = async (eventId: string) => {
+    const { data: photosData } = await supabase
+      .from('photos')
+      .select('*')
+      .eq('event_id', eventId)
+      .order('created_at', { ascending: false })
+    setPhotos(photosData || [])
+
+    const sessionId = getSessionId()
+    const photoIds = (photosData || []).map((p: any) => p.id)
+
+    if (photoIds.length > 0) {
+      const { data: likesData } = await supabase
+        .from('likes')
+        .select('photo_id, session_id')
+        .in('photo_id', photoIds)
+
+      const likeCount: Record<string, number> = {}
+      const likedMap: Record<string, boolean> = {}
+      ;(likesData || []).forEach((l: any) => {
+        likeCount[l.photo_id] = (likeCount[l.photo_id] || 0) + 1
+        if (l.session_id === sessionId) likedMap[l.photo_id] = true
+      })
+      setLikes(likeCount)
+      setLiked(likedMap)
+
+      const { data: commentsData } = await supabase
+        .from('comments')
+        .select('*')
+        .in('photo_id', photoIds)
+        .order('created_at', { ascending: true })
+
+      const commentsMap: Record<string, any[]> = {}
+      ;(commentsData || []).forEach((c: any) => {
+        if (!commentsMap[c.photo_id]) commentsMap[c.photo_id] = []
+        commentsMap[c.photo_id].push(c)
+      })
+      setComments(commentsMap)
+    }
+  }
+
   const handleUpload = async () => {
     if (!files || files.length === 0) return
     setLoading(true)
-
     for (let i = 0; i < files.length; i++) {
       const file = files[i]
       const cleanName = file.name.replace(/[^a-zA-Z0-9.]/g, '_')
       const fileName = `${event.id}/${Date.now()}-${i}-${cleanName}`
-
       const { error: uploadError } = await supabase.storage
         .from('photos')
         .upload(fileName, file)
-
       if (uploadError) { console.error(uploadError); continue }
-
       const { data: urlData } = supabase.storage
         .from('photos')
         .getPublicUrl(fileName)
-
       await supabase.from('photos').insert({
         event_id: event.id,
         guest_name: guestName || null,
@@ -65,18 +110,45 @@ export default function GuestPage() {
         approved: true
       })
     }
-
     setSuccess(true)
     setLoading(false)
     setFiles(null)
     setMessage('')
+    await loadPhotos(event.id)
+  }
 
-    const { data: photosData } = await supabase
-      .from('photos')
-      .select('*')
-      .eq('event_id', event?.id)
-      .order('created_at', { ascending: false })
-    setPhotos(photosData || [])
+  const handleLike = async (photoId: string) => {
+    const sessionId = getSessionId()
+    if (liked[photoId]) {
+      await supabase.from('likes').delete()
+        .eq('photo_id', photoId).eq('session_id', sessionId)
+      setLikes(l => ({ ...l, [photoId]: (l[photoId] || 1) - 1 }))
+      setLiked(l => ({ ...l, [photoId]: false }))
+      if (selectedPhoto?.id === photoId) {
+        setSelectedPhoto((p: any) => ({ ...p, _likes: (p._likes || 1) - 1, _liked: false }))
+      }
+    } else {
+      await supabase.from('likes').insert({ photo_id: photoId, session_id: sessionId })
+      setLikes(l => ({ ...l, [photoId]: (l[photoId] || 0) + 1 }))
+      setLiked(l => ({ ...l, [photoId]: true }))
+      if (selectedPhoto?.id === photoId) {
+        setSelectedPhoto((p: any) => ({ ...p, _likes: (p._likes || 0) + 1, _liked: true }))
+      }
+    }
+  }
+
+  const handleComment = async (photoId: string) => {
+    if (!newComment.trim()) return
+    const { data } = await supabase.from('comments').insert({
+      photo_id: photoId,
+      guest_name: commentName || null,
+      content: newComment.trim()
+    }).select().single()
+    setComments(c => ({
+      ...c,
+      [photoId]: [...(c[photoId] || []), data]
+    }))
+    setNewComment('')
   }
 
   if (!event) return (
@@ -104,7 +176,7 @@ export default function GuestPage() {
           onClick={() => setTab('upload')}
           className={`flex-1 py-3 text-sm font-medium transition ${tab === 'upload' ? 'text-purple-700 border-b-2 border-purple-700' : 'text-gray-400'}`}
         >
-          {isKorean ? '📤 사진 올리기' : '📤 Upload photos'}
+          {isKorean ? '📤 사진 올리기' : '📤 Upload'}
         </button>
         <button
           onClick={() => setTab('gallery')}
@@ -114,7 +186,8 @@ export default function GuestPage() {
         </button>
       </div>
 
-      <div className="max-w-lg mx-auto px-6 py-8">
+      <div className="max-w-lg mx-auto px-4 py-6">
+        {/* Upload tab */}
         {tab === 'upload' && (
           <div className="flex flex-col gap-4">
             {success ? (
@@ -124,7 +197,7 @@ export default function GuestPage() {
                   {isKorean ? '업로드 완료!' : 'Uploaded!'}
                 </p>
                 <p className="text-gray-400 text-sm mb-6">
-                  {isKorean ? '소중한 순간을 공유해주셔서 감사합니다' : 'Thank you for sharing your memories!'}
+                  {isKorean ? '소중한 순간을 공유해주셔서 감사합니다' : 'Thank you for sharing!'}
                 </p>
                 <button
                   onClick={() => { setSuccess(false); setTab('gallery') }}
@@ -147,7 +220,6 @@ export default function GuestPage() {
                     className="w-full border border-gray-200 rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-purple-400"
                   />
                 </div>
-
                 <div>
                   <label className="text-sm text-gray-500 mb-1.5 block">
                     {isKorean ? '메시지 (선택사항)' : 'Message (optional)'}
@@ -160,16 +232,12 @@ export default function GuestPage() {
                     className="w-full border border-gray-200 rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-purple-400 resize-none"
                   />
                 </div>
-
                 <div>
                   <label className="text-sm text-gray-500 mb-1.5 block">
                     {isKorean ? '사진 선택' : 'Select photos'}
                   </label>
                   <div className="border-2 border-dashed border-gray-200 rounded-xl p-8 text-center">
                     <p className="text-3xl mb-2">📷</p>
-                    <p className="text-gray-400 text-sm mb-3">
-                      {isKorean ? '사진을 선택하세요' : 'Choose your photos'}
-                    </p>
                     <input
                       type="file"
                       accept="image/*"
@@ -188,7 +256,6 @@ export default function GuestPage() {
                     )}
                   </div>
                 </div>
-
                 <button
                   onClick={handleUpload}
                   disabled={loading || !files || files.length === 0}
@@ -201,20 +268,100 @@ export default function GuestPage() {
           </div>
         )}
 
+        {/* Gallery tab — Instagram style */}
         {tab === 'gallery' && (
           <div>
             {photos.length === 0 ? (
               <div className="text-center py-12">
                 <p className="text-4xl mb-3">🖼️</p>
-                <p className="text-gray-400">
-                  {isKorean ? '아직 사진이 없습니다' : 'No photos yet'}
-                </p>
+                <p className="text-gray-400">{isKorean ? '아직 사진이 없습니다' : 'No photos yet'}</p>
               </div>
             ) : (
-              <div className="grid grid-cols-3 gap-2">
+              <div className="flex flex-col gap-6">
                 {photos.map(photo => (
-                  <div key={photo.id} className="aspect-square rounded-xl overflow-hidden bg-gray-100">
-                    <img src={photo.url} alt="" className="w-full h-full object-cover" />
+                  <div key={photo.id} className="border border-gray-100 rounded-2xl overflow-hidden">
+                    {/* Post header */}
+                    <div className="flex items-center gap-3 px-4 py-3">
+                      <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center text-sm">
+                        {photo.guest_name ? photo.guest_name[0].toUpperCase() : '👤'}
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium">{photo.guest_name || (isKorean ? '익명' : 'Guest')}</p>
+                        <p className="text-xs text-gray-400">{new Date(photo.created_at).toLocaleDateString()}</p>
+                      </div>
+                    </div>
+
+                    {/* Photo */}
+                    <div
+                      className="cursor-pointer"
+                      onClick={() => setSelectedPhoto(photo)}
+                    >
+                      <img
+                        src={photo.url}
+                        alt=""
+                        className="w-full object-cover"
+                        style={{ maxHeight: '500px' }}
+                      />
+                    </div>
+
+                    {/* Actions */}
+                    <div className="px-4 py-3">
+                      <div className="flex items-center gap-4 mb-2">
+                        <button
+                          onClick={() => handleLike(photo.id)}
+                          className="flex items-center gap-1 text-sm transition"
+                        >
+                          <span className="text-xl">{liked[photo.id] ? '❤️' : '🤍'}</span>
+                          <span className={liked[photo.id] ? 'text-red-500 font-medium' : 'text-gray-400'}>
+                            {likes[photo.id] || 0}
+                          </span>
+                        </button>
+                        <button className="text-xl">💬</button>
+                        
+                          href={photo.url}
+                          download
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xl ml-auto"
+                        >
+                          ⬇️
+                        </a>
+                      </div>
+
+                      {/* Message */}
+                      {photo.message && (
+                        <p className="text-sm text-gray-600 mb-2">
+                          <span className="font-medium">{photo.guest_name || (isKorean ? '익명' : 'Guest')}</span>{' '}
+                          {photo.message}
+                        </p>
+                      )}
+
+                      {/* Comments */}
+                      {(comments[photo.id] || []).map((c: any) => (
+                        <p key={c.id} className="text-sm text-gray-600 mb-1">
+                          <span className="font-medium">{c.guest_name || (isKorean ? '익명' : 'Guest')}</span>{' '}
+                          {c.content}
+                        </p>
+                      ))}
+
+                      {/* Add comment */}
+                      <div className="flex gap-2 mt-3 border-t border-gray-50 pt-3">
+                        <input
+                          type="text"
+                          placeholder={isKorean ? '댓글 추가...' : 'Add a comment...'}
+                          value={newComment}
+                          onChange={e => setNewComment(e.target.value)}
+                          onKeyDown={e => e.key === 'Enter' && handleComment(photo.id)}
+                          className="flex-1 text-sm border-none outline-none text-gray-600 placeholder-gray-300"
+                        />
+                        <button
+                          onClick={() => handleComment(photo.id)}
+                          className="text-purple-700 text-sm font-medium"
+                        >
+                          {isKorean ? '게시' : 'Post'}
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -222,6 +369,85 @@ export default function GuestPage() {
           </div>
         )}
       </div>
+
+      {/* Modal — foto en grande */}
+      {selectedPhoto && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center p-4"
+          onClick={() => setSelectedPhoto(null)}
+        >
+          <div
+            className="bg-white rounded-2xl overflow-hidden max-w-lg w-full max-h-screen overflow-y-auto"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center text-sm">
+                  {selectedPhoto.guest_name ? selectedPhoto.guest_name[0].toUpperCase() : '👤'}
+                </div>
+                <p className="text-sm font-medium">{selectedPhoto.guest_name || (isKorean ? '익명' : 'Guest')}</p>
+              </div>
+              <button onClick={() => setSelectedPhoto(null)} className="text-gray-400 text-xl">✕</button>
+            </div>
+
+            <img src={selectedPhoto.url} alt="" className="w-full object-cover" />
+
+            <div className="px-4 py-3">
+              <div className="flex items-center gap-4 mb-3">
+                <button
+                  onClick={() => handleLike(selectedPhoto.id)}
+                  className="flex items-center gap-1 text-sm"
+                >
+                  <span className="text-xl">{liked[selectedPhoto.id] ? '❤️' : '🤍'}</span>
+                  <span className={liked[selectedPhoto.id] ? 'text-red-500 font-medium' : 'text-gray-400'}>
+                    {likes[selectedPhoto.id] || 0}
+                  </span>
+                </button>
+                
+                  href={selectedPhoto.url}
+                  download
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xl ml-auto"
+                >
+                  ⬇️
+                </a>
+              </div>
+
+              {selectedPhoto.message && (
+                <p className="text-sm text-gray-600 mb-3">
+                  <span className="font-medium">{selectedPhoto.guest_name || (isKorean ? '익명' : 'Guest')}</span>{' '}
+                  {selectedPhoto.message}
+                </p>
+              )}
+
+              {(comments[selectedPhoto.id] || []).map((c: any) => (
+                <p key={c.id} className="text-sm text-gray-600 mb-1">
+                  <span className="font-medium">{c.guest_name || (isKorean ? '익명' : 'Guest')}</span>{' '}
+                  {c.content}
+                </p>
+              ))}
+
+              <div className="flex gap-2 mt-3 border-t border-gray-100 pt-3">
+                <input
+                  type="text"
+                  placeholder={isKorean ? '댓글 추가...' : 'Add a comment...'}
+                  value={newComment}
+                  onChange={e => setNewComment(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && handleComment(selectedPhoto.id)}
+                  className="flex-1 text-sm border-none outline-none text-gray-600 placeholder-gray-300"
+                />
+                <button
+                  onClick={() => handleComment(selectedPhoto.id)}
+                  className="text-purple-700 text-sm font-medium"
+                >
+                  {isKorean ? '게시' : 'Post'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   )
 }
