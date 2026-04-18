@@ -37,7 +37,7 @@ const t = {
   ko: {
     upload: '📤 사진 올리기',
     gallery: '🖼️ 갤러리',
-    name: '이름 (선택사항)',
+    name: '이름',
     namePh: '예: 김민준',
     message: '메시지 (선택사항)',
     messagePh: '축하 메시지를 남겨주세요...',
@@ -60,7 +60,7 @@ const t = {
   en: {
     upload: '📤 Upload',
     gallery: '🖼️ Gallery',
-    name: 'Your name (optional)',
+    name: 'Your name',
     namePh: 'e.g. John',
     message: 'Message (optional)',
     messagePh: 'Leave a message...',
@@ -83,7 +83,7 @@ const t = {
   es: {
     upload: '📤 Subir',
     gallery: '🖼️ Galería',
-    name: 'Tu nombre (opcional)',
+    name: 'Tu nombre',
     namePh: 'ej: María',
     message: 'Mensaje (opcional)',
     messagePh: 'Deja un mensaje...',
@@ -293,7 +293,7 @@ export default function GuestPage() {
                     )}
                   </div>
                 </div>
-                <button onClick={handleUpload} disabled={loading || !files || files.length === 0} className="bg-purple-700 text-white py-3 rounded-lg hover:bg-purple-800 transition font-medium disabled:opacity-50">
+                <button onClick={handleUpload} disabled={loading || !files || files.length === 0 || !guestName.trim()} className="bg-purple-700 text-white py-3 rounded-lg hover:bg-purple-800 transition font-medium disabled:opacity-50">
                   {loading ? '...' : tx.uploadBtn}
                 </button>
               </div>
