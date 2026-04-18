@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import JSZip from 'jszip'
 
 const supabase = createClient(
@@ -8,10 +8,10 @@ const supabase = createClient(
 )
 
 export async function GET(
-  request: NextRequest,
-  context: { params: Promise<{ eventId: string }> }
+  request: Request,
+  { params }: { params: { eventId: string } }
 ) {
-  const { eventId } = await context.params
+  const eventId = params.eventId
 
   const { data: photos } = await supabase
     .from('photos')
