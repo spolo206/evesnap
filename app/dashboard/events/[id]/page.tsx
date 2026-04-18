@@ -216,7 +216,7 @@ export default function EventPage() {
                           <div className="flex items-center gap-4 mb-2">
                             <span className="text-sm text-gray-400">{'❤️ ' + (likes[photo.id] || 0)}</span>
                             <span className="text-sm text-gray-400">{'💬 ' + (comments[photo.id] || []).length}</span>
-                            <a href={photo.url} download="photo.jpg" className="ml-auto text-sm text-gray-400 border border-gray-200 px-3 py-1 rounded-lg hover:bg-gray-50 transition">{t.download}</a>
+                            <a href={"/api/download-photo?url=" + encodeURIComponent(photo.url)} download="evesnap-photo.jpg" className="ml-auto text-sm text-gray-400 border border-gray-200 px-3 py-1 rounded-lg hover:bg-gray-50 transition">{t.download}</a>
                           </div>
                           {photo.message && (
                             <p className="text-sm text-gray-600 mb-2">
@@ -258,7 +258,7 @@ export default function EventPage() {
               <div className="flex items-center gap-4 mb-3">
                 <span className="text-sm text-gray-400">{'❤️ ' + (likes[selectedPhoto.id] || 0)}</span>
                 <span className="text-sm text-gray-400">{'💬 ' + (comments[selectedPhoto.id] || []).length}</span>
-                <a href={selectedPhoto.url} download="photo.jpg" className="ml-auto text-sm text-gray-400 border border-gray-200 px-3 py-1 rounded-lg hover:bg-gray-50 transition">{t.download}</a>
+                <a href={"/api/download-photo?url=" + encodeURIComponent(selectedPhoto.url)} download="evesnap-photo.jpg" className="ml-auto text-sm text-gray-400 border border-gray-200 px-3 py-1 rounded-lg hover:bg-gray-50 transition">{t.download}</a>
               </div>
               {selectedPhoto.message && (
                 <p className="text-sm text-gray-600 mb-3">

@@ -348,7 +348,7 @@ export default function GuestPage() {
                               <span className="text-sm text-gray-400">{likes[photo.id] || 0}</span>
                             </button>
                             <span className="text-xl">💬</span>
-                            <a href={photo.url} download="photo.jpg" className="ml-auto text-sm text-gray-400 border border-gray-200 px-3 py-1 rounded-lg hover:bg-gray-50 transition">{tx.download}</a>
+                            <a href={"/api/download-photo?url=" + encodeURIComponent(photo.url)} download="evesnap-photo.jpg" className="ml-auto text-sm text-gray-400 border border-gray-200 px-3 py-1 rounded-lg hover:bg-gray-50 transition">{tx.download}</a>
                           </div>
                           {photo.message && (
                             <p className="text-sm text-gray-600 mb-2">
@@ -401,7 +401,7 @@ export default function GuestPage() {
                   <span className="text-xl">{liked[selectedPhoto.id] ? '❤️' : '🤍'}</span>
                   <span className="text-sm text-gray-400">{likes[selectedPhoto.id] || 0}</span>
                 </button>
-                <a href={selectedPhoto.url} download="photo.jpg" className="ml-auto text-sm text-gray-400 border border-gray-200 px-3 py-1 rounded-lg hover:bg-gray-50 transition">{tx.download}</a>
+                <a href={"/api/download-photo?url=" + encodeURIComponent(selectedPhoto.url)} download="evesnap-photo.jpg" className="ml-auto text-sm text-gray-400 border border-gray-200 px-3 py-1 rounded-lg hover:bg-gray-50 transition">{tx.download}</a>
               </div>
               {selectedPhoto.message && (
                 <p className="text-sm text-gray-600 mb-3">
