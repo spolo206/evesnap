@@ -10,99 +10,19 @@ const supabase = createClient(
 
 function getSessionId() {
   let id = localStorage.getItem('evesnap_session')
-  if (!id) {
-    id = Math.random().toString(36).substring(2)
-    localStorage.setItem('evesnap_session', id)
-  }
+  if (!id) { id = Math.random().toString(36).substring(2); localStorage.setItem('evesnap_session', id) }
   return id
 }
 
-function getSavedName() {
-  return localStorage.getItem('evesnap_name') || ''
-}
-
-function saveName(name) {
-  if (name) localStorage.setItem('evesnap_name', name)
-}
-
-function getSavedLang() {
-  return localStorage.getItem('evesnap_lang') || null
-}
-
-function saveLang(lang) {
-  localStorage.setItem('evesnap_lang', lang)
-}
+function getSavedName() { return localStorage.getItem('evesnap_name') || '' }
+function saveName(name) { if (name) localStorage.setItem('evesnap_name', name) }
+function getSavedLang() { return localStorage.getItem('evesnap_lang') || null }
+function saveLang(lang) { localStorage.setItem('evesnap_lang', lang) }
 
 const t = {
-  ko: {
-    upload: '📤 사진 올리기',
-    gallery: '🖼️ 갤러리',
-    name: '이름',
-    namePh: '예: 김민준',
-    message: '메시지 (선택사항)',
-    messagePh: '축하 메시지를 남겨주세요...',
-    select: '사진 선택',
-    choose: '사진 선택',
-    selected: '장 선택됨',
-    uploadBtn: '📤 업로드하기',
-    successTitle: '업로드 완료!',
-    successSub: '감사합니다',
-    viewGallery: '갤러리 보기',
-    noPhotos: '아직 사진이 없습니다',
-    guest: '익명',
-    feed: '☰ 피드',
-    grid: '⊞ 그리드',
-    addComment: '댓글 추가...',
-    yourName: '이름...',
-    post: '게시',
-    download: 'Download',
-  },
-  en: {
-    upload: '📤 Upload',
-    gallery: '🖼️ Gallery',
-    name: 'Your name',
-    namePh: 'e.g. John',
-    message: 'Message (optional)',
-    messagePh: 'Leave a message...',
-    select: 'Select photos',
-    choose: 'Choose photos',
-    selected: 'photos selected',
-    uploadBtn: '📤 Upload photos',
-    successTitle: 'Uploaded!',
-    successSub: 'Thank you!',
-    viewGallery: 'View gallery',
-    noPhotos: 'No photos yet',
-    guest: 'Guest',
-    feed: '☰ Feed',
-    grid: '⊞ Grid',
-    addComment: 'Add a comment...',
-    yourName: 'Your name...',
-    post: 'Post',
-    download: 'Download',
-  },
-  es: {
-    upload: '📤 Subir',
-    gallery: '🖼️ Galería',
-    name: 'Tu nombre',
-    namePh: 'ej: María',
-    message: 'Mensaje (opcional)',
-    messagePh: 'Deja un mensaje...',
-    select: 'Seleccionar fotos',
-    choose: 'Elegir fotos',
-    selected: 'fotos seleccionadas',
-    uploadBtn: '📤 Subir fotos',
-    successTitle: '¡Subido!',
-    successSub: '¡Gracias!',
-    viewGallery: 'Ver galería',
-    noPhotos: 'No hay fotos aún',
-    guest: 'Invitado',
-    feed: '☰ Feed',
-    grid: '⊞ Grid',
-    addComment: 'Añadir comentario...',
-    yourName: 'Tu nombre...',
-    post: 'Publicar',
-    download: 'Descargar',
-  }
+  ko: { upload: '📤 사진 올리기', gallery: '🖼️ 갤러리', name: '이름', namePh: '예: 김민준', message: '메시지 (선택사항)', messagePh: '축하 메시지를 남겨주세요...', select: '사진 선택', choose: '사진 선택', selected: '장 선택됨', uploadBtn: '📤 업로드하기', successTitle: '업로드 완료!', successSub: '감사합니다', viewGallery: '갤러리 보기', noPhotos: '아직 사진이 없습니다', guest: '익명', feed: '☰ 피드', grid: '⊞ 그리드', addComment: '댓글 추가...', yourName: '이름...', post: '게시', download: '⬇️ 다운로드' },
+  en: { upload: '📤 Upload', gallery: '🖼️ Gallery', name: 'Your name', namePh: 'e.g. John', message: 'Message (optional)', messagePh: 'Leave a message...', select: 'Select photos', choose: 'Choose photos', selected: 'photos selected', uploadBtn: '📤 Upload photos', successTitle: 'Uploaded!', successSub: 'Thank you!', viewGallery: 'View gallery', noPhotos: 'No photos yet', guest: 'Guest', feed: '☰ Feed', grid: '⊞ Grid', addComment: 'Add a comment...', yourName: 'Your name...', post: 'Post', download: '⬇️ Download' },
+  es: { upload: '📤 Subir', gallery: '🖼️ Galería', name: 'Tu nombre', namePh: 'ej: María', message: 'Mensaje (opcional)', messagePh: 'Deja un mensaje...', select: 'Seleccionar fotos', choose: 'Elegir fotos', selected: 'fotos seleccionadas', uploadBtn: '📤 Subir fotos', successTitle: '¡Subido!', successSub: '¡Gracias!', viewGallery: 'Ver galería', noPhotos: 'No hay fotos aún', guest: 'Invitado', feed: '☰ Feed', grid: '⊞ Grid', addComment: 'Añadir comentario...', yourName: 'Tu nombre...', post: 'Publicar', download: '⬇️ Descargar' }
 }
 
 export default function GuestPage() {
@@ -132,11 +52,8 @@ export default function GuestPage() {
       const { data } = await supabase.from('events').select('*').eq('slug', slug).single()
       setEvent(data)
       const savedLang = getSavedLang()
-      if (savedLang) {
-        setLang(savedLang)
-      } else if (data) {
-        setLang(data.language || 'ko')
-      }
+      if (savedLang) setLang(savedLang)
+      else if (data) setLang(data.language || 'ko')
       if (data) await loadPhotos(data.id)
     }
     init()
@@ -208,10 +125,7 @@ export default function GuestPage() {
     setNewComment('')
   }
 
-  const changeLang = (l) => {
-    setLang(l)
-    saveLang(l)
-  }
+  const changeLang = (l) => { setLang(l); saveLang(l) }
 
   if (!event) return (
     <div className="min-h-screen flex items-center justify-center">
@@ -229,8 +143,8 @@ export default function GuestPage() {
             <img src={event.cover_url} alt="" className="w-full h-56 object-cover" />
             <div className="absolute inset-0 flex flex-col items-center justify-center px-6">
               <p className="text-4xl mb-3">📸</p>
-              <h1 className="text-2xl font-bold mb-1 text-center">{event.name}</h1>
-              <p className="text-white text-opacity-80 text-sm">{event.date} {event.location ? '· ' + event.location : ''}</p>
+              <h1 className="text-2xl font-bold mb-1 text-center drop-shadow-lg">{event.name}</h1>
+              <p className="text-sm drop-shadow-lg">{event.date} {event.location ? '· ' + event.location : ''}</p>
             </div>
           </div>
         ) : (
@@ -250,12 +164,8 @@ export default function GuestPage() {
       </div>
 
       <div className="flex border-b border-gray-100">
-        <button onClick={() => setTab('upload')} className={'flex-1 py-3 text-sm font-medium transition ' + (tab === 'upload' ? 'text-purple-700 border-b-2 border-purple-700' : 'text-gray-400')}>
-          {tx.upload}
-        </button>
-        <button onClick={() => setTab('gallery')} className={'flex-1 py-3 text-sm font-medium transition ' + (tab === 'gallery' ? 'text-purple-700 border-b-2 border-purple-700' : 'text-gray-400')}>
-          {tx.gallery + ' (' + photos.length + ')'}
-        </button>
+        <button onClick={() => setTab('upload')} className={'flex-1 py-3 text-sm font-medium transition ' + (tab === 'upload' ? 'text-purple-700 border-b-2 border-purple-700' : 'text-gray-400')}>{tx.upload}</button>
+        <button onClick={() => setTab('gallery')} className={'flex-1 py-3 text-sm font-medium transition ' + (tab === 'gallery' ? 'text-purple-700 border-b-2 border-purple-700' : 'text-gray-400')}>{tx.gallery + ' (' + photos.length + ')'}</button>
       </div>
 
       <div className="max-w-lg mx-auto px-4 py-6">
@@ -266,14 +176,12 @@ export default function GuestPage() {
                 <p className="text-5xl mb-4">🎉</p>
                 <p className="text-xl font-bold mb-2">{tx.successTitle}</p>
                 <p className="text-gray-400 text-sm mb-6">{tx.successSub}</p>
-                <button onClick={() => { setSuccess(false); setTab('gallery') }} className="bg-purple-700 text-white px-6 py-3 rounded-lg text-sm">
-                  {tx.viewGallery}
-                </button>
+                <button onClick={() => { setSuccess(false); setTab('gallery') }} className="bg-purple-700 text-white px-6 py-3 rounded-lg text-sm">{tx.viewGallery}</button>
               </div>
             ) : (
               <div className="flex flex-col gap-4">
                 <div>
-                  <label className="text-sm text-gray-500 mb-1.5 block">{tx.name}</label>
+                  <label className="text-sm text-gray-500 mb-1.5 block">{tx.name} *</label>
                   <input type="text" placeholder={tx.namePh} value={guestName} onChange={e => { setGuestName(e.target.value); setCommentName(e.target.value) }} className="w-full border border-gray-200 rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-purple-400" />
                 </div>
                 <div>
@@ -285,9 +193,7 @@ export default function GuestPage() {
                   <div className="border-2 border-dashed border-gray-200 rounded-xl p-8 text-center">
                     <p className="text-3xl mb-2">📷</p>
                     <input type="file" accept="image/*" multiple onChange={e => setFiles(e.target.files)} className="hidden" id="file-input" />
-                    <label htmlFor="file-input" className="bg-purple-700 text-white px-5 py-2 rounded-lg text-sm cursor-pointer hover:bg-purple-800 transition">
-                      {tx.choose}
-                    </label>
+                    <label htmlFor="file-input" className="bg-purple-700 text-white px-5 py-2 rounded-lg text-sm cursor-pointer hover:bg-purple-800 transition">{tx.choose}</label>
                     {files && files.length > 0 && (
                       <p className="text-purple-600 text-sm mt-3">{files.length} {tx.selected}</p>
                     )}
@@ -348,7 +254,7 @@ export default function GuestPage() {
                               <span className="text-sm text-gray-400">{likes[photo.id] || 0}</span>
                             </button>
                             <span className="text-xl">💬</span>
-                            <a href={"/api/download-photo?url=" + encodeURIComponent(photo.url)} download="evesnap-photo.jpg" className="ml-auto text-sm text-gray-400 border border-gray-200 px-3 py-1 rounded-lg hover:bg-gray-50 transition">{tx.download}</a>
+                            <a href={'/api/download-photo?url=' + encodeURIComponent(photo.url)} download="evesnap-photo.jpg" className="ml-auto text-sm text-purple-700 border border-purple-200 px-3 py-1 rounded-lg hover:bg-purple-50 transition">{tx.download}</a>
                           </div>
                           {photo.message && (
                             <p className="text-sm text-gray-600 mb-2">
@@ -401,7 +307,7 @@ export default function GuestPage() {
                   <span className="text-xl">{liked[selectedPhoto.id] ? '❤️' : '🤍'}</span>
                   <span className="text-sm text-gray-400">{likes[selectedPhoto.id] || 0}</span>
                 </button>
-                <a href={"/api/download-photo?url=" + encodeURIComponent(selectedPhoto.url)} download="evesnap-photo.jpg" className="ml-auto text-sm text-gray-400 border border-gray-200 px-3 py-1 rounded-lg hover:bg-gray-50 transition">{tx.download}</a>
+                <a href={'/api/download-photo?url=' + encodeURIComponent(selectedPhoto.url)} download="evesnap-photo.jpg" className="ml-auto text-sm text-purple-700 border border-purple-200 px-3 py-1 rounded-lg hover:bg-purple-50 transition">{tx.download}</a>
               </div>
               {selectedPhoto.message && (
                 <p className="text-sm text-gray-600 mb-3">
